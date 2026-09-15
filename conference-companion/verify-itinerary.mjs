@@ -10,7 +10,7 @@ const items = context.window.DEFAULT_ITINERARY.items;
 const ids = Object.keys(items);
 const missing = ids.filter(id => !sessions.some(session => String(session.id) === id));
 const count = tier => Object.values(items).filter(value => value === tier).length;
-if (missing.length || ids.length !== 28 || count('MUST') !== 13 || count('PRIORITY') !== 15) {
+if (missing.length || ids.length !== 31 || count('MUST') !== 13 || count('PRIORITY') !== 18) {
   throw new Error(`Invalid itinerary: ${JSON.stringify({ total: ids.length, must: count('MUST'), priority: count('PRIORITY'), missing })}`);
 }
-console.log('Itinerary verified: 28 sessions (13 MUST, 15 PRIORITY).');
+console.log('Itinerary verified: 31 sessions (13 MUST, 18 PRIORITY).');
