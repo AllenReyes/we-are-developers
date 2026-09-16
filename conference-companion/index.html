@@ -44,6 +44,7 @@
             <button class="filter" type="button" data-filter="all" aria-pressed="false">All sessions</button>
             <button class="filter" type="button" data-filter="must" aria-pressed="false">MUST</button>
             <button class="filter" type="button" data-filter="priority" aria-pressed="false">Priority</button>
+            <button class="filter" type="button" data-filter="reserved" aria-pressed="false">Reserved</button>
             <button class="filter" type="button" data-filter="workshop" aria-pressed="false">Workshops</button>
             <button class="filter" type="button" data-filter="stream" aria-pressed="false">Streams</button>
             <button class="filter manage" id="manage" type="button">Edit itinerary</button>
@@ -51,7 +52,7 @@
         </section>
         <div class="summary-bar" aria-live="polite">
           <p class="summary-copy" id="resultnote">Loading schedule…</p>
-          <div class="stat-list"><span class="stat" id="count"></span><span class="stat">Red = MUST</span><span class="stat">Gold = Priority</span></div>
+          <div class="stat-list"><span class="stat" id="count"></span><span class="stat">Red = MUST</span><span class="stat">Gold = Priority</span><span class="stat">Blue = Reserved</span></div>
         </div>
         <section id="schedule"></section>
       </section>
