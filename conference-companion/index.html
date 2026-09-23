@@ -3,48 +3,62 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#172b4d">
+  <meta name="theme-color" content="#10172a">
   <meta name="description" content="A focused WeAreDevelopers World Congress 2026 itinerary.">
   <title>WeAreDevelopers 2026 - Allen's Conference Companion</title>
   <!--SITE_AUTH-->
-  <link rel="stylesheet" href="styles.css?v=2026-09-22-v3">
+  <link rel="stylesheet" href="styles.css?v=2026-09-23-v4">
 </head>
 <body>
   <a class="skip-link" href="#schedule">Skip to schedule</a>
   <div id="app">
     <header class="site-header">
       <div class="header-inner">
-        <div>
-          <p class="eyebrow">Personal event navigator</p>
-          <h1>WeAreDevelopers World Congress 2026</h1>
-          <p class="header-copy">San Jose · September 23–25 · A focused Staff-engineer itinerary alongside the complete program.</p>
+        <div class="hero-copy">
+          <div class="brand-row"><span class="brand-mark" aria-hidden="true">WAD<span>26</span></span><p class="eyebrow">Conference companion</p></div>
+          <h1>Your route through<br><span>World Congress 2026</span></h1>
+          <p class="header-copy">A focused, conflict-free path through the best of AI engineering, infrastructure, and Staff+ leadership.</p>
+          <div class="hero-meta" aria-label="Event details">
+            <span><b>SEP</b> 23–25, 2026</span>
+            <span><b>SJC</b> San Jose, California</span>
+            <span><b>24</b> selected sessions</span>
+          </div>
         </div>
-        <a class="event-link" href="https://www.wearedevelopers.com/world-congress-north-america/agenda/schedule" target="_blank" rel="noopener">Official schedule ↗</a>
+        <div class="hero-actions">
+          <span class="live-status"><i aria-hidden="true"></i> Agenda synced</span>
+          <a class="event-link" href="https://www.wearedevelopers.com/world-congress-north-america/agenda/schedule" target="_blank" rel="noopener">Open official schedule <span aria-hidden="true">↗</span></a>
+        </div>
       </div>
     </header>
     <main class="layout">
       <aside class="sidebar" aria-label="Schedule navigation">
         <section class="side-panel">
-          <h2>Jump to a day</h2>
+          <p class="panel-kicker">Navigate</p>
+          <h2>Conference days</h2>
           <nav class="day-nav" id="days" aria-label="Agenda days"></nav>
         </section>
         <section class="side-panel">
-          <h2>Itinerary notes</h2>
+          <p class="panel-kicker">How to read this</p>
+          <h2>Your route</h2>
+          <div class="route-key" aria-label="Itinerary status key">
+            <span><i class="key-dot must"></i><b>MUST</b> Don't miss</span>
+            <span><i class="key-dot priority"></i><b>PRIORITY</b> Strong pick</span>
+            <span><i class="key-dot reserved"></i><b>RESERVED</b> Seat confirmed</span>
+          </div>
           <p id="storagenote">This public view shows the approved, conflict-free itinerary.</p>
-          <p id="owneraccess" style="margin-top:10px"><a href="/signin-with-chatgpt?return_to=%2F" target="_top">Owner sign-in</a></p>
-          <p style="margin-top:10px"><b>Reserved</b> means you already have a workshop seat in the official event app. All other workshops are full and are not recommended.</p>
-          <p style="margin-top:10px">Conflicting bookmarks remain searchable in the full schedule but are not part of this conflict-free route.</p>
+          <p id="owneraccess" class="owner-access"><a href="/signin-with-chatgpt?return_to=%2F" target="_top">Owner sign-in <span aria-hidden="true">→</span></a></p>
+          <details class="route-details"><summary>Route notes</summary><p><b>Reserved</b> means a workshop seat is confirmed in the official event app. All other workshops are full.</p><p>Conflicting bookmarks remain searchable in the full schedule, but stay outside this route.</p></details>
         </section>
       </aside>
       <section class="workspace" aria-label="Conference schedule">
         <section class="toolbar" aria-label="Schedule controls">
           <div class="search-wrap">
-            <label for="search">Search the schedule</label>
-            <input class="search" id="search" type="search" placeholder="Session, speaker, track, or stage" autocomplete="off">
+            <label for="search">Find a session</label>
+            <div class="search-field"><span aria-hidden="true">⌕</span><input class="search" id="search" type="search" placeholder="Search title, speaker, track, or stage…" autocomplete="off"></div>
           </div>
           <div class="filter-row" id="filters" role="group" aria-label="Session filters">
-            <button class="filter" type="button" data-filter="itinerary" aria-pressed="true">My itinerary</button>
-            <button class="filter" type="button" data-filter="all" aria-pressed="false">All sessions</button>
+            <button class="filter" type="button" data-filter="itinerary" aria-pressed="true">My route</button>
+            <button class="filter" type="button" data-filter="all" aria-pressed="false">Full schedule</button>
             <button class="filter" type="button" data-filter="must" aria-pressed="false">MUST</button>
             <button class="filter" type="button" data-filter="priority" aria-pressed="false">Priority</button>
             <button class="filter" type="button" data-filter="reserved" aria-pressed="false">Reserved</button>
@@ -55,7 +69,7 @@
         </section>
         <div class="summary-bar" aria-live="polite">
           <p class="summary-copy" id="resultnote">Loading schedule…</p>
-          <div class="stat-list"><span class="stat" id="count"></span><span class="stat">Red = MUST</span><span class="stat">Gold = Priority</span><span class="stat">Blue = Reserved</span></div>
+          <div class="stat-list"><span class="stat" id="count"></span><span class="stat conflict-free"><i aria-hidden="true">✓</i> Conflict-free</span></div>
         </div>
         <section id="schedule"></section>
       </section>
@@ -63,8 +77,8 @@
   </div>
   <dialog id="detail" aria-modal="true"><div class="dialog-body" id="detailcontent"></div></dialog>
   <dialog id="editor" aria-modal="true" aria-labelledby="editor-title"><div class="dialog-body"><button class="dialog-close" type="button" data-close-dialog="editor" data-initial-focus aria-label="Close itinerary editor">×</button><h2 class="dialog-title" id="editor-title">Edit itinerary</h2><p class="dialog-meta">Changes stay on this device until you export them.</p><div id="editorcontent"></div><div class="dialog-actions"><button class="button primary" id="export" type="button">Export JSON</button><label class="button" for="importfile">Import JSON</label><input class="sr-only" id="importfile" type="file" accept="application/json"><button class="button danger" id="reset" type="button">Reset to baseline</button></div></div></dialog>
-  <script src="sessions.js?v=2026-09-22-v3"></script>
-  <script src="itinerary.js?v=2026-09-22-v3"></script>
-  <script src="app.js?v=2026-09-22-v3"></script>
+  <script src="sessions.js?v=2026-09-23-v4"></script>
+  <script src="itinerary.js?v=2026-09-23-v4"></script>
+  <script src="app.js?v=2026-09-23-v4"></script>
 </body>
 </html>

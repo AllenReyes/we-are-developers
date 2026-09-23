@@ -16,6 +16,13 @@
   const time = value => new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit' }).format(new Date(value));
   const sessionDate = session => session.starts_at.slice(0, 10);
   const dayLabel = date => new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).format(new Date(`${date}T12:00:00-07:00`));
+  const dayParts = date => {
+    const value = new Date(`${date}T12:00:00-07:00`);
+    return {
+      weekday: new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(value),
+      date: new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(value)
+    };
+  };
   const validItems = items => Object.fromEntries(Object.entries(items || {}).filter(([id, tier]) => byId.has(String(id)) && ['MUST', 'PRIORITY', 'RESERVED'].includes(tier)));
   const cloneBaseline = () => ({ version: 3, items: validItems(baseline.items) });
   const readSaved = () => { try { const saved = JSON.parse(localStorage.getItem(storageKey)); return saved?.version === 3 ? { version: 3, items: validItems(saved.items) } : null; } catch { return null; } };
@@ -77,12 +84,14 @@
     const reserved = Object.values(state.itinerary.items).filter(value => value === 'RESERVED').length;
     els.count.textContent = `${must + priority + reserved} itinerary sessions${reserved ? ` · ${reserved} reserved` : ''}`;
     els.result.textContent = `Showing ${visible.length} of ${list.length} sessions.`;
-    els.days.innerHTML = dates.map(date => `<a href="#${date}">${dayLabel(date)}</a>`).join('') || '<span class="editor-note">No matching days</span>';
+    els.days.innerHTML = dates.map(date => { const parts = dayParts(date); return `<a href="#${date}"><span>${parts.weekday}</span><small>${parts.date}</small></a>`; }).join('') || '<span class="editor-note">No matching days</span>';
     els.schedule.innerHTML = dates.map(date => {
       const sessions = visible.filter(session => sessionDate(session) === date); let last = '';
-      return `<section class="schedule-day" id="${date}" aria-labelledby="heading-${date}"><div class="day-heading"><h2 id="heading-${date}">${dayLabel(date)}</h2><span>${sessions.length} shown</span></div>${sessions.map(session => {
+      const parts = dayParts(date);
+      return `<section class="schedule-day" id="${date}" aria-labelledby="heading-${date}"><div class="day-heading"><div><p>${parts.date} · Your route</p><h2 id="heading-${date}">${parts.weekday}</h2></div><span>${sessions.length} sessions</span></div>${sessions.map(session => {
         const group = session.starts_at !== last ? `<div class="time-group">${time(session.starts_at)} start</div>` : ''; last = session.starts_at;
-        return `${group}<article class="session-row"><div class="session-time">${time(session.starts_at)}<br><span>${time(session.ends_at)}</span></div><div><div class="session-meta">${badge(session)} <span class="session-type">${escapeHtml(type(session))}</span><span>· ${escapeHtml(session.stage || 'Location TBA')}</span>${session.track ? `<span>· ${escapeHtml(session.track)}</span>` : ''}</div><h3 class="session-title">${escapeHtml(session.title)}</h3>${session.speakers.length ? `<p class="session-speakers">${escapeHtml(session.speakers.join(' · '))}</p>` : ''}</div><button class="row-action" data-open-session="${session.id}" aria-label="Open details for ${escapeHtml(session.title)}">Details</button></article>`;
+        const tier = tierFor(session);
+        return `${group}<article class="session-row ${tier ? tier.toLowerCase() : ''}"><div class="session-time"><b>${time(session.starts_at)}</b><span>${time(session.ends_at)}</span></div><div class="session-main"><div class="session-meta">${badge(session)} <span class="session-type">${escapeHtml(type(session))}</span><span class="session-location">${escapeHtml(session.stage || 'Location TBA')}</span>${session.track ? `<span>${escapeHtml(session.track)}</span>` : ''}</div><h3 class="session-title">${escapeHtml(session.title)}</h3>${session.speakers.length ? `<p class="session-speakers">${escapeHtml(session.speakers.join(' · '))}</p>` : ''}</div><button class="row-action" data-open-session="${session.id}" aria-label="Open details for ${escapeHtml(session.title)}"><span>View</span><i aria-hidden="true">→</i></button></article>`;
       }).join('')}</section>`;
     }).join('') || '<div class="empty">No sessions match those filters. Clear the search or choose another filter.</div>';
   }
