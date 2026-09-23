@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#10172a">
+  <meta name="description" content="Live streams, YouTube recordings, and session links for WeAreDevelopers World Congress 2026.">
+  <title>Live &amp; Recordings - WeAreDevelopers 2026</title>
+  <link rel="stylesheet" href="styles.css?v=2026-09-23-v5">
+</head>
+<body>
+  <a class="skip-link" href="#resources">Skip to session links</a>
+  <header class="site-header resources-header">
+    <div class="header-inner">
+      <div class="hero-copy">
+        <div class="brand-row"><span class="brand-mark" aria-hidden="true">WAD<span>26</span></span><p class="eyebrow">Watch &amp; explore</p></div>
+        <h1>Every session link.<br><span>One watch list.</span></h1>
+        <p class="header-copy">Live streams, YouTube recordings, official session pages, and event-app links for the complete conference.</p>
+        <div class="hero-meta" aria-label="Resource summary">
+          <span><b id="video-count">—</b> YouTube videos</span>
+          <span><b id="session-count">—</b> sessions</span>
+          <span><b>3</b> conference days</span>
+        </div>
+      </div>
+      <div class="hero-actions">
+        <span class="live-status"><i aria-hidden="true"></i> Links synced</span>
+        <nav class="site-switch" aria-label="Site sections">
+          <a class="event-link" href="/">My schedule</a>
+          <a class="event-link active" href="/recordings" aria-current="page">Live &amp; recordings</a>
+        </nav>
+      </div>
+    </div>
+  </header>
+  <main class="resource-layout" id="resources">
+    <section class="toolbar resource-toolbar" aria-label="Session link controls">
+      <div class="search-wrap">
+        <label for="resource-search">Find a session or speaker</label>
+        <div class="search-field"><span aria-hidden="true">⌕</span><input class="search" id="resource-search" type="search" placeholder="Search title, speaker, track, or stage…" autocomplete="off"></div>
+      </div>
+      <div class="filter-row" id="resource-filters" role="group" aria-label="Link filters">
+        <button class="filter" type="button" data-filter="youtube" aria-pressed="true">YouTube recordings</button>
+        <button class="filter" type="button" data-filter="all" aria-pressed="false">All sessions</button>
+        <button class="filter" type="button" data-filter="live" aria-pressed="false">Live streams</button>
+        <button class="filter" type="button" data-filter="other" aria-pressed="false">No video yet</button>
+      </div>
+    </section>
+    <div class="resource-summary">
+      <p id="resource-result" aria-live="polite">Loading session links…</p>
+      <a href="https://www.wearedevelopers.com/world-congress-north-america/agenda/schedule" target="_blank" rel="noopener">Official conference schedule ↗</a>
+    </div>
+    <div id="resource-days" class="resource-days" aria-label="Jump to day"></div>
+    <section id="resource-list" aria-label="Session links"></section>
+  </main>
+  <script src="sessions.js?v=2026-09-23-v5"></script>
+  <script src="recordings.js?v=2026-09-23-v5"></script>
+</body>
+</html>

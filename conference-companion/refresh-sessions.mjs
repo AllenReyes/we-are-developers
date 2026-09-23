@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const root = path.resolve(import.meta.dirname, '..');
-const raw = JSON.parse(fs.readFileSync(path.join(root, 'conference-schedule-raw-data.json'), 'utf8')).data;
+const raw = JSON.parse(fs.readFileSync(path.join(root, 'conference-schedule-data.json'), 'utf8')).data;
 const generatedPath = path.join(import.meta.dirname, 'sessions.js');
 const existingSource = fs.existsSync(generatedPath) ? fs.readFileSync(generatedPath, 'utf8') : '';
 const existingSessions = existingSource ? JSON.parse(existingSource.replace(/^window\.CONFERENCE_SESSIONS=/, '').replace(/;\s*$/, '')) : [];
@@ -65,6 +65,18 @@ const compact = raw.sessions.map(source => {
     flag: null
   };
 });
+
+// Keep itinerary-only sessions available when a late schedule export removes one.
+// This preserves the user's route while the full schedule still follows the latest export.
+const itinerarySource = fs.readFileSync(path.join(import.meta.dirname, 'itinerary.js'), 'utf8');
+const itineraryIds = new Set([...itinerarySource.matchAll(/["'](\d+)["']\s*:/g)].map(([, id]) => Number(id)));
+const currentIds = new Set(compact.map(session => session.id));
+for (const session of existingSessions) {
+  if (itineraryIds.has(session.id) && !currentIds.has(session.id)) {
+    compact.push({ ...session, flag: 'No longer listed in the latest schedule' });
+  }
+}
+compact.sort((a, b) => a.starts_at.localeCompare(b.starts_at) || a.ends_at.localeCompare(b.ends_at) || a.id - b.id);
 
 const detailLinkCount = compact.filter(session => session.official_url !== directoryUrl).length;
 fs.writeFileSync(generatedPath, `window.CONFERENCE_SESSIONS=${JSON.stringify(compact)};\n`);

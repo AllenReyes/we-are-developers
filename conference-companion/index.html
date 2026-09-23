@@ -7,7 +7,7 @@
   <meta name="description" content="A focused WeAreDevelopers World Congress 2026 itinerary.">
   <title>WeAreDevelopers 2026 - Allen's Conference Companion</title>
   <!--SITE_AUTH-->
-  <link rel="stylesheet" href="styles.css?v=2026-09-23-v4">
+  <link rel="stylesheet" href="styles.css?v=2026-09-23-v5">
 </head>
 <body>
   <a class="skip-link" href="#schedule">Skip to schedule</a>
@@ -26,7 +26,10 @@
         </div>
         <div class="hero-actions">
           <span class="live-status"><i aria-hidden="true"></i> Agenda synced</span>
-          <a class="event-link" href="https://www.wearedevelopers.com/world-congress-north-america/agenda/schedule" target="_blank" rel="noopener">Open official schedule <span aria-hidden="true">↗</span></a>
+          <nav class="site-switch" aria-label="Site sections">
+            <a class="event-link active" href="/" aria-current="page">My schedule</a>
+            <a class="event-link" href="/recordings">Live &amp; recordings <span aria-hidden="true">→</span></a>
+          </nav>
         </div>
       </div>
     </header>
@@ -77,8 +80,8 @@
   </div>
   <dialog id="detail" aria-modal="true"><div class="dialog-body" id="detailcontent"></div></dialog>
   <dialog id="editor" aria-modal="true" aria-labelledby="editor-title"><div class="dialog-body"><button class="dialog-close" type="button" data-close-dialog="editor" data-initial-focus aria-label="Close itinerary editor">×</button><h2 class="dialog-title" id="editor-title">Edit itinerary</h2><p class="dialog-meta">Changes stay on this device until you export them.</p><div id="editorcontent"></div><div class="dialog-actions"><button class="button primary" id="export" type="button">Export JSON</button><label class="button" for="importfile">Import JSON</label><input class="sr-only" id="importfile" type="file" accept="application/json"><button class="button danger" id="reset" type="button">Reset to baseline</button></div></div></dialog>
-  <script src="sessions.js?v=2026-09-23-v4"></script>
-  <script src="itinerary.js?v=2026-09-23-v4"></script>
-  <script src="app.js?v=2026-09-23-v4"></script>
+  <script src="sessions.js?v=2026-09-23-v5"></script>
+  <script src="itinerary.js?v=2026-09-23-v5"></script>
+  <script src="app.js?v=2026-09-23-v5"></script>
 </body>
 </html>
