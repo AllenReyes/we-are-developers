@@ -3,7 +3,7 @@ import vm from 'node:vm';
 
 const context = { window: {} };
 vm.createContext(context);
-for (const file of ['sessions.js', 'itinerary.js']) vm.runInContext(fs.readFileSync(new URL(file, import.meta.url), 'utf8'), context);
+for (const file of ['sessions.js', 'itinerary.js', 'timeline.js']) vm.runInContext(fs.readFileSync(new URL(file, import.meta.url), 'utf8'), context);
 
 const sessions = context.window.CONFERENCE_SESSIONS;
 const itinerary = context.window.DEFAULT_ITINERARY;
@@ -11,6 +11,7 @@ const appSource = fs.readFileSync(new URL('app.js', import.meta.url), 'utf8');
 const indexSource = fs.readFileSync(new URL('index.html', import.meta.url), 'utf8');
 const buildSource = fs.readFileSync(new URL('build.mjs', import.meta.url), 'utf8');
 const items = itinerary.items;
+const timeline = context.window.CONFERENCE_TIMELINE;
 const byId = new Map(sessions.map(session => [String(session.id), session]));
 const selected = Object.entries(items).map(([id, status]) => ({ id, status, session: byId.get(id) }));
 
@@ -47,6 +48,19 @@ const excludedIds = [
 ];
 const failures = [];
 const fail = message => failures.push(message);
+const expectStatus = (time, expectedState, expectedIds) => {
+  const actual = timeline.itineraryStatus(sessions, items, new Date(time));
+  if (actual.state !== expectedState || JSON.stringify(actual.ids) !== JSON.stringify(expectedIds)) {
+    fail(`timeline status at ${time}: ${JSON.stringify(actual)} !== ${JSON.stringify({ state: expectedState, ids: expectedIds })}`);
+  }
+};
+
+expectStatus('2026-09-23T09:59:59-07:00', 'next', ['1069']);
+expectStatus('2026-09-23T10:00:00-07:00', 'now', ['1069']);
+expectStatus('2026-09-23T10:29:59-07:00', 'now', ['1069']);
+expectStatus('2026-09-23T10:30:00-07:00', 'next', ['1092']);
+expectStatus('2026-09-23T10:40:00-07:00', 'next', ['1092']);
+expectStatus('2026-09-25T17:20:00-07:00', null, []);
 
 if (itinerary.version !== 3) fail(`expected itinerary schema version 3, received ${itinerary.version}`);
 if (!appSource.includes("const storageKey = 'wad-2026-itinerary-v3'")) fail('v3 storage key is missing');
@@ -54,6 +68,9 @@ if (appSource.includes("localStorage.getItem('wad-2026-itinerary-v2')")) fail('s
 if (!appSource.includes('[1, 2, 3].includes(value.version)')) fail('backward-compatible itinerary import versions are missing');
 if (!indexSource.includes('<!--SITE_AUTH-->')) fail('server auth injection marker is missing');
 if (!indexSource.includes('id="manage" type="button" hidden')) fail('editing control is not hidden by default');
+if (!indexSource.includes('timeline.js?v=2026-09-23-v6')) fail('timeline script or current cache buster is missing');
+if (!indexSource.includes('href="/favicon.png"') || !indexSource.includes('href="/apple-touch-icon.png"')) fail('site icon links are missing');
+if (!appSource.includes('window.setInterval(refreshTemporalStatus, 30_000)')) fail('timeline status refresh interval is missing');
 if (!appSource.includes("const canEdit = auth.canEdit === true")) fail('owner edit gate is missing');
 if (!appSource.includes('canEdit ? readSaved() || cloneBaseline() : cloneBaseline()')) fail('public visitors can load browser-saved overrides');
 if (!buildSource.includes("oai-authenticated-user-email") || !buildSource.includes('env?.OWNER_EMAIL')) fail('server-side owner identity check is missing');
@@ -110,6 +127,8 @@ const anonymousResponse = await renderHome({});
 const anonymousHtml = await anonymousResponse.text();
 if (!anonymousHtml.includes('"isAuthenticated":false,"canEdit":false')) fail('anonymous visitor receives editing permission');
 if (!anonymousResponse.headers.get('cache-control')?.includes('no-store')) fail('anonymous HTML is cacheable');
+const faviconResponse = await workerContext.worker.fetch(new Request('https://example.test/favicon.png'), {});
+if (faviconResponse.status !== 200 || faviconResponse.headers.get('content-type') !== 'image/png' || (await faviconResponse.arrayBuffer()).byteLength < 1000) fail('favicon is missing or invalid');
 const friendHtml = await (await renderHome({ 'oai-authenticated-user-id': 'friend-id', 'oai-authenticated-user-email': 'friend@example.test' })).text();
 if (!friendHtml.includes('"isAuthenticated":true,"canEdit":false')) fail('signed-in non-owner receives incorrect permission');
 const ownerHtml = await (await renderHome({ 'oai-authenticated-user-id': 'owner-id', 'oai-authenticated-user-email': ownerEmail.toUpperCase() })).text();

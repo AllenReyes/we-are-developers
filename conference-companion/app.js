@@ -3,6 +3,7 @@
   const auth = window.SITE_AUTH || { isAuthenticated: false, canEdit: false };
   const canEdit = auth.canEdit === true;
   const list = window.CONFERENCE_SESSIONS || [];
+  const timeline = window.CONFERENCE_TIMELINE;
   const byId = new Map(list.map(session => [String(session.id), session]));
   const baseline = window.DEFAULT_ITINERARY || { version: 3, items: {} };
   const els = {
@@ -42,6 +43,22 @@
     const filterMatch = state.filter === 'all' || (state.filter === 'itinerary' && tier) || (state.filter === 'must' && tier === 'MUST') || (state.filter === 'priority' && tier === 'PRIORITY') || (state.filter === 'reserved' && tier === 'RESERVED') || (state.filter === 'workshop' && session.is_workshop) || (state.filter === 'stream' && session.live_url);
     return queryMatch && filterMatch;
   };
+
+  function refreshTemporalStatus() {
+    const status = timeline.itineraryStatus(list, state.itinerary.items);
+    const activeIds = new Set(status.ids);
+    els.schedule.querySelectorAll('[data-session-id]').forEach(row => {
+      const active = activeIds.has(row.dataset.sessionId);
+      const isNow = active && status.state === 'now';
+      const isNext = active && status.state === 'next';
+      const indicator = row.querySelector('[data-time-indicator]');
+      row.classList.toggle('is-now', isNow);
+      row.classList.toggle('is-next', isNext);
+      indicator.hidden = !active;
+      indicator.className = `timing-badge${isNow ? ' now' : isNext ? ' next' : ''}`;
+      indicator.textContent = isNow ? 'Happening now' : isNext ? 'Up next' : '';
+    });
+  }
 
   const modalState = new WeakMap();
   const focusable = dialog => [...dialog.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])')].filter(element => !element.hidden);
@@ -91,9 +108,10 @@
       return `<section class="schedule-day" id="${date}" aria-labelledby="heading-${date}"><div class="day-heading"><div><p>${parts.date} · Your route</p><h2 id="heading-${date}">${parts.weekday}</h2></div><span>${sessions.length} sessions</span></div>${sessions.map(session => {
         const group = session.starts_at !== last ? `<div class="time-group">${time(session.starts_at)} start</div>` : ''; last = session.starts_at;
         const tier = tierFor(session);
-        return `${group}<article class="session-row ${tier ? tier.toLowerCase() : ''}"><div class="session-time"><b>${time(session.starts_at)}</b><span>${time(session.ends_at)}</span></div><div class="session-main"><div class="session-meta">${badge(session)} <span class="session-type">${escapeHtml(type(session))}</span><span class="session-location">${escapeHtml(session.stage || 'Location TBA')}</span>${session.track ? `<span>${escapeHtml(session.track)}</span>` : ''}</div><h3 class="session-title">${escapeHtml(session.title)}</h3>${session.speakers.length ? `<p class="session-speakers">${escapeHtml(session.speakers.join(' · '))}</p>` : ''}</div><button class="row-action" data-open-session="${session.id}" aria-label="Open details for ${escapeHtml(session.title)}"><span>View</span><i aria-hidden="true">→</i></button></article>`;
+        return `${group}<article class="session-row ${tier ? tier.toLowerCase() : ''}" data-session-id="${session.id}"><div class="session-time"><b>${time(session.starts_at)}</b><span>${time(session.ends_at)}</span></div><div class="session-main"><div class="session-meta"><span class="timing-badge" data-time-indicator hidden></span>${badge(session)} <span class="session-type">${escapeHtml(type(session))}</span><span class="session-location">${escapeHtml(session.stage || 'Location TBA')}</span>${session.track ? `<span>${escapeHtml(session.track)}</span>` : ''}</div><h3 class="session-title">${escapeHtml(session.title)}</h3>${session.speakers.length ? `<p class="session-speakers">${escapeHtml(session.speakers.join(' · '))}</p>` : ''}</div><button class="row-action" data-open-session="${session.id}" aria-label="Open details for ${escapeHtml(session.title)}"><span>View</span><i aria-hidden="true">→</i></button></article>`;
       }).join('')}</section>`;
     }).join('') || '<div class="empty">No sessions match those filters. Clear the search or choose another filter.</div>';
+    refreshTemporalStatus();
   }
 
   function showSession(session, opener) {
@@ -121,6 +139,7 @@
   els.importFile.addEventListener('change', async event => { if (!canEdit) { event.target.value = ''; return; } const file = event.target.files?.[0]; if (!file) return; try { const value = JSON.parse(await file.text()); const items = validItems(value.items); if (![1, 2, 3].includes(value.version) || !Object.keys(items).length) throw new Error(); state.itinerary = { version: 3, items }; persist(); render(); renderEditor(); els.editorContent.insertAdjacentHTML('afterbegin', '<p class="editor-note" role="status">Itinerary imported.</p>'); } catch { els.editorContent.insertAdjacentHTML('afterbegin', '<p class="editor-note" role="alert">That file is not a valid itinerary JSON export.</p>'); } event.target.value = ''; });
   els.reset.addEventListener('click', () => { if (canEdit && confirm('Reset your itinerary to the latest baseline recommendations?')) { state.itinerary = cloneBaseline(); persist(); render(); renderEditor(); } });
   document.addEventListener('click', event => { const closer = event.target.closest('[data-close-dialog]'); if (closer) closeModal(document.querySelector(`#${closer.dataset.closeDialog}`)); const detailButton = event.target.closest('[data-open-session]'); if (detailButton) showSession(byId.get(detailButton.dataset.openSession), detailButton); const tierButton = event.target.closest('[data-set-tier][data-session-id]'); if (tierButton) setTier(tierButton.dataset.sessionId, tierButton.dataset.setTier); });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshTemporalStatus(); });
   window.addEventListener('hashchange', () => { const match = location.hash.match(/^#session-(.+)$/); if (match) showSession(byId.get(match[1]), document.activeElement); });
   els.manage.hidden = !canEdit;
   if (canEdit) {
@@ -130,6 +149,7 @@
     els.ownerAccess.textContent = 'Editing is available only to the site owner.';
   }
   render();
+  window.setInterval(refreshTemporalStatus, 30_000);
   const initialHash = location.hash.match(/^#session-(.+)$/);
   if (initialHash) showSession(byId.get(initialHash[1]), document.activeElement);
 })();
