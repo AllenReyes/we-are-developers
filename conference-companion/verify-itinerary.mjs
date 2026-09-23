@@ -8,6 +8,8 @@ for (const file of ['sessions.js', 'itinerary.js']) vm.runInContext(fs.readFileS
 const sessions = context.window.CONFERENCE_SESSIONS;
 const itinerary = context.window.DEFAULT_ITINERARY;
 const appSource = fs.readFileSync(new URL('app.js', import.meta.url), 'utf8');
+const indexSource = fs.readFileSync(new URL('index.html', import.meta.url), 'utf8');
+const buildSource = fs.readFileSync(new URL('build.mjs', import.meta.url), 'utf8');
 const items = itinerary.items;
 const byId = new Map(sessions.map(session => [String(session.id), session]));
 const selected = Object.entries(items).map(([id, status]) => ({ id, status, session: byId.get(id) }));
@@ -50,6 +52,12 @@ if (itinerary.version !== 3) fail(`expected itinerary schema version 3, received
 if (!appSource.includes("const storageKey = 'wad-2026-itinerary-v3'")) fail('v3 storage key is missing');
 if (appSource.includes("localStorage.getItem('wad-2026-itinerary-v2')")) fail('stale v2 local storage can still override the baseline');
 if (!appSource.includes('[1, 2, 3].includes(value.version)')) fail('backward-compatible itinerary import versions are missing');
+if (!indexSource.includes('<!--SITE_AUTH-->')) fail('server auth injection marker is missing');
+if (!indexSource.includes('id="manage" type="button" hidden')) fail('editing control is not hidden by default');
+if (!appSource.includes("const canEdit = auth.canEdit === true")) fail('owner edit gate is missing');
+if (!appSource.includes('canEdit ? readSaved() || cloneBaseline() : cloneBaseline()')) fail('public visitors can load browser-saved overrides');
+if (!buildSource.includes("oai-authenticated-user-email") || !buildSource.includes('env?.OWNER_EMAIL')) fail('server-side owner identity check is missing');
+if (!buildSource.includes("'cache-control': 'private, no-store, max-age=0'")) fail('authenticated HTML is not protected from caching');
 if (selected.length !== 24) fail(`expected 24 selected sessions, received ${selected.length}`);
 for (const [id, [status, title]] of Object.entries(expected)) {
   const session = byId.get(id);
@@ -91,6 +99,21 @@ const designingApis = byId.get('1303');
 if (designingApis?.starts_at !== '2026-09-25T16:10:00-07:00' || designingApis?.ends_at !== '2026-09-25T16:40:00-07:00' || designingApis?.stage !== 'Stage 6') {
   fail('Designing APIs live correction is missing');
 }
+
+const workerSource = fs.readFileSync(new URL('dist/server/index.js', import.meta.url), 'utf8').replace('export default', 'globalThis.worker =');
+const workerContext = { Request, Response, URL, Headers };
+vm.createContext(workerContext);
+vm.runInContext(workerSource, workerContext);
+const ownerEmail = 'owner@example.test';
+const renderHome = async headers => workerContext.worker.fetch(new Request('https://example.test/', { headers }), { OWNER_EMAIL: ownerEmail });
+const anonymousResponse = await renderHome({});
+const anonymousHtml = await anonymousResponse.text();
+if (!anonymousHtml.includes('"isAuthenticated":false,"canEdit":false')) fail('anonymous visitor receives editing permission');
+if (!anonymousResponse.headers.get('cache-control')?.includes('no-store')) fail('anonymous HTML is cacheable');
+const friendHtml = await (await renderHome({ 'oai-authenticated-user-id': 'friend-id', 'oai-authenticated-user-email': 'friend@example.test' })).text();
+if (!friendHtml.includes('"isAuthenticated":true,"canEdit":false')) fail('signed-in non-owner receives incorrect permission');
+const ownerHtml = await (await renderHome({ 'oai-authenticated-user-id': 'owner-id', 'oai-authenticated-user-email': ownerEmail.toUpperCase() })).text();
+if (!ownerHtml.includes('"isAuthenticated":true,"canEdit":true')) fail('signed-in owner does not receive editing permission');
 
 if (failures.length) throw new Error(`Invalid itinerary:\n- ${failures.join('\n- ')}`);
 console.log('Itinerary verified: 24 sessions (9 MUST, 11 PRIORITY, 4 RESERVED), no overlaps, and only reserved workshops selected.');

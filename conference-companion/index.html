@@ -4,8 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#172b4d">
-  <meta name="description" content="A focused, editable WeAreDevelopers World Congress 2026 itinerary.">
+  <meta name="description" content="A focused WeAreDevelopers World Congress 2026 itinerary.">
   <title>WeAreDevelopers 2026 - Allen's Conference Companion</title>
+  <!--SITE_AUTH-->
   <link rel="stylesheet" href="styles.css?v=2026-09-22-v3">
 </head>
 <body>
@@ -16,7 +17,7 @@
         <div>
           <p class="eyebrow">Personal event navigator</p>
           <h1>WeAreDevelopers World Congress 2026</h1>
-          <p class="header-copy">San Jose · September 23–25 · A focused, editable Staff-engineer itinerary alongside the complete program.</p>
+          <p class="header-copy">San Jose · September 23–25 · A focused Staff-engineer itinerary alongside the complete program.</p>
         </div>
         <a class="event-link" href="https://www.wearedevelopers.com/world-congress-north-america/agenda/schedule" target="_blank" rel="noopener">Official schedule ↗</a>
       </div>
@@ -29,7 +30,8 @@
         </section>
         <section class="side-panel">
           <h2>Itinerary notes</h2>
-          <p>Your changes are saved on this device. Use Edit itinerary to import, export, or reset them.</p>
+          <p id="storagenote">This public view shows the approved, conflict-free itinerary.</p>
+          <p id="owneraccess" style="margin-top:10px"><a href="/signin-with-chatgpt?return_to=%2F" target="_top">Owner sign-in</a></p>
           <p style="margin-top:10px"><b>Reserved</b> means you already have a workshop seat in the official event app. All other workshops are full and are not recommended.</p>
           <p style="margin-top:10px">Conflicting bookmarks remain searchable in the full schedule but are not part of this conflict-free route.</p>
         </section>
@@ -48,7 +50,7 @@
             <button class="filter" type="button" data-filter="reserved" aria-pressed="false">Reserved</button>
             <button class="filter" type="button" data-filter="workshop" aria-pressed="false">Workshops</button>
             <button class="filter" type="button" data-filter="stream" aria-pressed="false">Streams</button>
-            <button class="filter manage" id="manage" type="button">Edit itinerary</button>
+            <button class="filter manage" id="manage" type="button" hidden>Edit itinerary</button>
           </div>
         </section>
         <div class="summary-bar" aria-live="polite">

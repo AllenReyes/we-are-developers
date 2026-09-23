@@ -1,5 +1,7 @@
 (() => {
   const storageKey = 'wad-2026-itinerary-v3';
+  const auth = window.SITE_AUTH || { isAuthenticated: false, canEdit: false };
+  const canEdit = auth.canEdit === true;
   const list = window.CONFERENCE_SESSIONS || [];
   const byId = new Map(list.map(session => [String(session.id), session]));
   const baseline = window.DEFAULT_ITINERARY || { version: 3, items: {} };
@@ -7,8 +9,8 @@
     app: document.querySelector('#app'), count: document.querySelector('#count'), days: document.querySelector('#days'),
     detail: document.querySelector('#detail'), detailContent: document.querySelector('#detailcontent'), editor: document.querySelector('#editor'),
     editorContent: document.querySelector('#editorcontent'), exportButton: document.querySelector('#export'), filters: document.querySelector('#filters'),
-    importFile: document.querySelector('#importfile'), manage: document.querySelector('#manage'), reset: document.querySelector('#reset'),
-    result: document.querySelector('#resultnote'), schedule: document.querySelector('#schedule'), search: document.querySelector('#search')
+    importFile: document.querySelector('#importfile'), manage: document.querySelector('#manage'), ownerAccess: document.querySelector('#owneraccess'), reset: document.querySelector('#reset'),
+    result: document.querySelector('#resultnote'), schedule: document.querySelector('#schedule'), search: document.querySelector('#search'), storageNote: document.querySelector('#storagenote')
   };
   const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
   const time = value => new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit' }).format(new Date(value));
@@ -17,8 +19,8 @@
   const validItems = items => Object.fromEntries(Object.entries(items || {}).filter(([id, tier]) => byId.has(String(id)) && ['MUST', 'PRIORITY', 'RESERVED'].includes(tier)));
   const cloneBaseline = () => ({ version: 3, items: validItems(baseline.items) });
   const readSaved = () => { try { const saved = JSON.parse(localStorage.getItem(storageKey)); return saved?.version === 3 ? { version: 3, items: validItems(saved.items) } : null; } catch { return null; } };
-  const state = { filter: 'itinerary', query: '', itinerary: readSaved() || cloneBaseline() };
-  const persist = () => localStorage.setItem(storageKey, JSON.stringify(state.itinerary));
+  const state = { filter: 'itinerary', query: '', itinerary: canEdit ? readSaved() || cloneBaseline() : cloneBaseline() };
+  const persist = () => { if (canEdit) localStorage.setItem(storageKey, JSON.stringify(state.itinerary)); };
   const tierFor = session => state.itinerary.items[String(session.id)] || null;
   const badge = session => tierFor(session) ? `<span class="badge ${tierFor(session).toLowerCase()}">${tierFor(session)}</span>` : '';
   const type = session => session.live_coding && session.type === 'Keynote/Talk' ? 'Live-coding Talk' : session.type;
@@ -88,7 +90,8 @@
   function showSession(session, opener) {
     if (!session) return;
     const tier = tierFor(session); const workshop = session.is_workshop ? (tier === 'RESERVED' ? '<div class="callout"><b>Reserved workshop:</b> You already have a seat for this workshop in the official event app.</div>' : '<div class="callout"><b>Workshop availability:</b> Unreserved workshops are full, so no additional workshops are recommended.</div>') : '';
-    els.detailContent.innerHTML = `<button class="dialog-close" type="button" data-close-dialog="detail" data-initial-focus aria-label="Close session details">×</button>${badge(session)}<h2 class="dialog-title" id="detail-title">${escapeHtml(session.title)}</h2><p class="dialog-meta"><span class="session-type">${escapeHtml(type(session))}</span> · ${time(session.starts_at)}–${time(session.ends_at)} · ${dayLabel(sessionDate(session))}</p><div class="fact-grid"><div class="fact"><b>Stage / location</b>${escapeHtml(session.stage || 'Location TBA')}</div><div class="fact"><b>Track</b>${escapeHtml(session.track || 'Not listed')}</div>${session.speakers.length ? `<div class="fact"><b>Speakers</b>${escapeHtml(session.speakers.join(' · '))}</div>` : ''}</div>${workshop}<div class="description">${escapeHtml(session.description || 'No session description provided.').replace(/\n/g, '<br>')}</div><ul class="resource-list">${sessionLinks(session).map(([label, url]) => `<li><a href="${escapeHtml(url)}" target="_blank" rel="noopener">${escapeHtml(label)} ↗</a></li>`).join('')}</ul><div class="dialog-actions"><button class="button ${tier === 'MUST' ? 'primary' : ''}" type="button" data-set-tier="MUST" data-session-id="${session.id}">Mark MUST</button><button class="button ${tier === 'PRIORITY' ? 'primary' : ''}" type="button" data-set-tier="PRIORITY" data-session-id="${session.id}">Mark Priority</button><button class="button ${tier === 'RESERVED' ? 'primary' : ''}" type="button" data-set-tier="RESERVED" data-session-id="${session.id}">Mark Reserved</button>${tier ? `<button class="button danger" type="button" data-set-tier="remove" data-session-id="${session.id}">Remove from itinerary</button>` : ''}</div>${session.app_url ? `<div class="dialog-actions"><a class="button primary" href="${escapeHtml(session.app_url)}" target="_blank" rel="noopener">${session.is_workshop ? (tier === 'RESERVED' ? 'Open reservation in event app' : 'Open workshop in event app') : 'Open in event app'} ↗</a></div>` : ''}`;
+    const editActions = canEdit ? `<div class="dialog-actions"><button class="button ${tier === 'MUST' ? 'primary' : ''}" type="button" data-set-tier="MUST" data-session-id="${session.id}">Mark MUST</button><button class="button ${tier === 'PRIORITY' ? 'primary' : ''}" type="button" data-set-tier="PRIORITY" data-session-id="${session.id}">Mark Priority</button><button class="button ${tier === 'RESERVED' ? 'primary' : ''}" type="button" data-set-tier="RESERVED" data-session-id="${session.id}">Mark Reserved</button>${tier ? `<button class="button danger" type="button" data-set-tier="remove" data-session-id="${session.id}">Remove from itinerary</button>` : ''}</div>` : '';
+    els.detailContent.innerHTML = `<button class="dialog-close" type="button" data-close-dialog="detail" data-initial-focus aria-label="Close session details">×</button>${badge(session)}<h2 class="dialog-title" id="detail-title">${escapeHtml(session.title)}</h2><p class="dialog-meta"><span class="session-type">${escapeHtml(type(session))}</span> · ${time(session.starts_at)}–${time(session.ends_at)} · ${dayLabel(sessionDate(session))}</p><div class="fact-grid"><div class="fact"><b>Stage / location</b>${escapeHtml(session.stage || 'Location TBA')}</div><div class="fact"><b>Track</b>${escapeHtml(session.track || 'Not listed')}</div>${session.speakers.length ? `<div class="fact"><b>Speakers</b>${escapeHtml(session.speakers.join(' · '))}</div>` : ''}</div>${workshop}<div class="description">${escapeHtml(session.description || 'No session description provided.').replace(/\n/g, '<br>')}</div><ul class="resource-list">${sessionLinks(session).map(([label, url]) => `<li><a href="${escapeHtml(url)}" target="_blank" rel="noopener">${escapeHtml(label)} ↗</a></li>`).join('')}</ul>${editActions}${session.app_url ? `<div class="dialog-actions"><a class="button primary" href="${escapeHtml(session.app_url)}" target="_blank" rel="noopener">${session.is_workshop ? (tier === 'RESERVED' ? 'Open reservation in event app' : 'Open workshop in event app') : 'Open in event app'} ↗</a></div>` : ''}`;
     els.detail.setAttribute('aria-labelledby', 'detail-title'); openModal(els.detail, opener);
   }
 
@@ -99,17 +102,24 @@
       return `<section class="editor-group"><h3>${tier} · ${group.length}</h3><ul class="editor-list">${group.map(({ id, session }) => `<li><span><span class="badge ${tier.toLowerCase()}">${tier}</span> <span class="editor-title">${escapeHtml(session.title)}</span></span><button class="button danger" type="button" data-set-tier="remove" data-session-id="${id}">Remove</button></li>`).join('')}</ul></section>`;
     }).join('') : '<p class="editor-note">No sessions in your itinerary yet.</p>';
   }
-  function setTier(id, tier) { tier === 'remove' ? delete state.itinerary.items[id] : state.itinerary.items[id] = tier; persist(); render(); renderEditor(); if (els.detail.open) showSession(byId.get(id), modalState.get(els.detail)); }
-  function exportItinerary() { const url = URL.createObjectURL(new Blob([JSON.stringify(state.itinerary, null, 2)], { type: 'application/json' })); const anchor = Object.assign(document.createElement('a'), { href: url, download: 'wearedevelopers-2026-itinerary.json' }); anchor.click(); setTimeout(() => URL.revokeObjectURL(url), 0); }
+  function setTier(id, tier) { if (!canEdit) return; tier === 'remove' ? delete state.itinerary.items[id] : state.itinerary.items[id] = tier; persist(); render(); renderEditor(); if (els.detail.open) showSession(byId.get(id), modalState.get(els.detail)); }
+  function exportItinerary() { if (!canEdit) return; const url = URL.createObjectURL(new Blob([JSON.stringify(state.itinerary, null, 2)], { type: 'application/json' })); const anchor = Object.assign(document.createElement('a'), { href: url, download: 'wearedevelopers-2026-itinerary.json' }); anchor.click(); setTimeout(() => URL.revokeObjectURL(url), 0); }
 
   els.search.addEventListener('input', event => { state.query = event.target.value.trim().toLowerCase(); render(); });
   els.filters.addEventListener('click', event => { const button = event.target.closest('[data-filter]'); if (!button) return; state.filter = button.dataset.filter; [...els.filters.querySelectorAll('[data-filter]')].forEach(item => item.setAttribute('aria-pressed', String(item === button))); render(); });
-  els.manage.addEventListener('click', event => { renderEditor(); openModal(els.editor, event.currentTarget); });
+  els.manage.addEventListener('click', event => { if (!canEdit) return; renderEditor(); openModal(els.editor, event.currentTarget); });
   els.exportButton.addEventListener('click', exportItinerary);
-  els.importFile.addEventListener('change', async event => { const file = event.target.files?.[0]; if (!file) return; try { const value = JSON.parse(await file.text()); const items = validItems(value.items); if (![1, 2, 3].includes(value.version) || !Object.keys(items).length) throw new Error(); state.itinerary = { version: 3, items }; persist(); render(); renderEditor(); els.editorContent.insertAdjacentHTML('afterbegin', '<p class="editor-note" role="status">Itinerary imported.</p>'); } catch { els.editorContent.insertAdjacentHTML('afterbegin', '<p class="editor-note" role="alert">That file is not a valid itinerary JSON export.</p>'); } event.target.value = ''; });
-  els.reset.addEventListener('click', () => { if (confirm('Reset your itinerary to the latest baseline recommendations?')) { state.itinerary = cloneBaseline(); persist(); render(); renderEditor(); } });
+  els.importFile.addEventListener('change', async event => { if (!canEdit) { event.target.value = ''; return; } const file = event.target.files?.[0]; if (!file) return; try { const value = JSON.parse(await file.text()); const items = validItems(value.items); if (![1, 2, 3].includes(value.version) || !Object.keys(items).length) throw new Error(); state.itinerary = { version: 3, items }; persist(); render(); renderEditor(); els.editorContent.insertAdjacentHTML('afterbegin', '<p class="editor-note" role="status">Itinerary imported.</p>'); } catch { els.editorContent.insertAdjacentHTML('afterbegin', '<p class="editor-note" role="alert">That file is not a valid itinerary JSON export.</p>'); } event.target.value = ''; });
+  els.reset.addEventListener('click', () => { if (canEdit && confirm('Reset your itinerary to the latest baseline recommendations?')) { state.itinerary = cloneBaseline(); persist(); render(); renderEditor(); } });
   document.addEventListener('click', event => { const closer = event.target.closest('[data-close-dialog]'); if (closer) closeModal(document.querySelector(`#${closer.dataset.closeDialog}`)); const detailButton = event.target.closest('[data-open-session]'); if (detailButton) showSession(byId.get(detailButton.dataset.openSession), detailButton); const tierButton = event.target.closest('[data-set-tier][data-session-id]'); if (tierButton) setTier(tierButton.dataset.sessionId, tierButton.dataset.setTier); });
   window.addEventListener('hashchange', () => { const match = location.hash.match(/^#session-(.+)$/); if (match) showSession(byId.get(match[1]), document.activeElement); });
+  els.manage.hidden = !canEdit;
+  if (canEdit) {
+    els.storageNote.textContent = 'Your changes are saved on this device. Use Edit itinerary to import, export, or reset them.';
+    els.ownerAccess.hidden = true;
+  } else if (auth.isAuthenticated) {
+    els.ownerAccess.textContent = 'Editing is available only to the site owner.';
+  }
   render();
   const initialHash = location.hash.match(/^#session-(.+)$/);
   if (initialHash) showSession(byId.get(initialHash[1]), document.activeElement);
