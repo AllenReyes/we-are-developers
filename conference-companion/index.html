@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#172b4d">
   <meta name="description" content="A focused, editable WeAreDevelopers World Congress 2026 itinerary.">
   <title>WeAreDevelopers 2026 - Allen's Conference Companion</title>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=2026-09-22-v3">
 </head>
 <body>
   <a class="skip-link" href="#schedule">Skip to schedule</a>
@@ -30,7 +30,8 @@
         <section class="side-panel">
           <h2>Itinerary notes</h2>
           <p>Your changes are saved on this device. Use Edit itinerary to import, export, or reset them.</p>
-          <p style="margin-top:10px">Workshop seats are reserved in the official event app.</p>
+          <p style="margin-top:10px"><b>Reserved</b> means you already have a workshop seat in the official event app. All other workshops are full and are not recommended.</p>
+          <p style="margin-top:10px">Conflicting bookmarks remain searchable in the full schedule but are not part of this conflict-free route.</p>
         </section>
       </aside>
       <section class="workspace" aria-label="Conference schedule">
@@ -60,8 +61,8 @@
   </div>
   <dialog id="detail" aria-modal="true"><div class="dialog-body" id="detailcontent"></div></dialog>
   <dialog id="editor" aria-modal="true" aria-labelledby="editor-title"><div class="dialog-body"><button class="dialog-close" type="button" data-close-dialog="editor" data-initial-focus aria-label="Close itinerary editor">×</button><h2 class="dialog-title" id="editor-title">Edit itinerary</h2><p class="dialog-meta">Changes stay on this device until you export them.</p><div id="editorcontent"></div><div class="dialog-actions"><button class="button primary" id="export" type="button">Export JSON</button><label class="button" for="importfile">Import JSON</label><input class="sr-only" id="importfile" type="file" accept="application/json"><button class="button danger" id="reset" type="button">Reset to baseline</button></div></div></dialog>
-  <script src="sessions.js"></script>
-  <script src="itinerary.js"></script>
-  <script src="app.js"></script>
+  <script src="sessions.js?v=2026-09-22-v3"></script>
+  <script src="itinerary.js?v=2026-09-22-v3"></script>
+  <script src="app.js?v=2026-09-22-v3"></script>
 </body>
 </html>

@@ -3,6 +3,10 @@ import path from 'node:path';
 
 const root = path.resolve(import.meta.dirname, '..');
 const raw = JSON.parse(fs.readFileSync(path.join(root, 'conference-schedule-raw-data.json'), 'utf8')).data;
+const generatedPath = path.join(import.meta.dirname, 'sessions.js');
+const existingSource = fs.existsSync(generatedPath) ? fs.readFileSync(generatedPath, 'utf8') : '';
+const existingSessions = existingSource ? JSON.parse(existingSource.replace(/^window\.CONFERENCE_SESSIONS=/, '').replace(/;\s*$/, '')) : [];
+const existingOfficialUrls = new Map(existingSessions.map(session => [session.id, session.official_url]));
 const directoryUrl = 'https://www.wearedevelopers.com/events/world-congress-2026-north-america/sessions';
 const load = url => fetch(url, { headers: { 'user-agent': 'Mozilla/5.0' } }).then(response => {
   if (!response.ok) throw new Error(`Could not load official session directory (${response.status})`);
@@ -19,7 +23,22 @@ const normalizeTitle = value => value
 const officialUrls = new Map([...html.matchAll(/aria-label="Open session ([^"]+)"[\s\S]{0,1200}?href="([^"]+)"/g)]
   .map(([, title, href]) => [normalizeTitle(title), new URL(href, directoryUrl).href]));
 
-const compact = raw.sessions.map(session => {
+// The event app is authoritative for late agenda changes that postdate the source export.
+const liveCorrections = new Map([
+  [1117, {
+    title: 'Build and deploy a personal agent on a Cloud Run instance',
+    description: "How do you run an autonomous AI agent in the cloud 24/7 without wasting a fortune or managing servers? If you are building long-running agents, you know the hosting dilemma: standard serverless platforms scale to zero, which instantly kills your background loops and wipes your agent's active memory. Dedicated VMs keep the agent awake, but they cost more and leave you stuck managing the infrastructure. The fix is a new compute primitive: Cloud Run instances. In this hands-on workshop, you will learn how to deploy a single, always-on container to host a continuous background agent. Stepping into the role of a coffee shop manager, you will build an AI assistant using the Agent Development Kit (ADK) that continuously analyzes business data. You will also leverage Cloud Run sandboxes, enabling your agent to dynamically write, execute, and test code on the fly to solve complex problems safely. Stop managing infrastructure and start building agents that never sleep!",
+    speakers: [{ full_name: 'Shir Meir Lador', company_position: null, company_name: null }]
+  }],
+  [1303, {
+    starts_at: '2026-09-25T16:10:00-07:00',
+    ends_at: '2026-09-25T16:40:00-07:00',
+    stage: { name: 'Stage 6', as_string: 'Stage 6' }
+  }]
+]);
+
+const compact = raw.sessions.map(source => {
+  const session = { ...source, ...(liveCorrections.get(source.id) || {}) };
   const speakerNames = session.speakers.map(speaker => [speaker.full_name, speaker.company_position, speaker.company_name]
     .filter(Boolean).join(' - ').replace(' - ', ' - ').replace(/ - ([^-]+)$/, ' at $1'));
   return {
@@ -41,12 +60,12 @@ const compact = raw.sessions.map(session => {
     live_url: session.live_url,
     recording_url: session.recording_url,
     app_url: `https://app.wearedevelopers.com/events/${session.event_id}/session/${session.id}`,
-    official_url: officialUrls.get(normalizeTitle(session.title)) || directoryUrl,
+    official_url: (liveCorrections.get(session.id)?.title ? officialUrls.get(normalizeTitle(session.title)) : existingOfficialUrls.get(session.id)) || officialUrls.get(normalizeTitle(session.title)) || directoryUrl,
     urls: [...new Set([session.live_url, session.recording_url].filter(Boolean))],
     flag: null
   };
 });
 
 const detailLinkCount = compact.filter(session => session.official_url !== directoryUrl).length;
-fs.writeFileSync(path.join(import.meta.dirname, 'sessions.js'), `window.CONFERENCE_SESSIONS=${JSON.stringify(compact)};\n`);
+fs.writeFileSync(generatedPath, `window.CONFERENCE_SESSIONS=${JSON.stringify(compact)};\n`);
 console.log(`Prepared ${compact.length} sessions with ${detailLinkCount} official detail links; the directory remains the official fallback.`);

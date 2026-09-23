@@ -2,7 +2,7 @@
   const storageKey = 'wad-2026-itinerary-v3';
   const list = window.CONFERENCE_SESSIONS || [];
   const byId = new Map(list.map(session => [String(session.id), session]));
-  const baseline = window.DEFAULT_ITINERARY || { version: 2, items: {} };
+  const baseline = window.DEFAULT_ITINERARY || { version: 3, items: {} };
   const els = {
     app: document.querySelector('#app'), count: document.querySelector('#count'), days: document.querySelector('#days'),
     detail: document.querySelector('#detail'), detailContent: document.querySelector('#detailcontent'), editor: document.querySelector('#editor'),
@@ -16,7 +16,7 @@
   const dayLabel = date => new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).format(new Date(`${date}T12:00:00-07:00`));
   const validItems = items => Object.fromEntries(Object.entries(items || {}).filter(([id, tier]) => byId.has(String(id)) && ['MUST', 'PRIORITY', 'RESERVED'].includes(tier)));
   const cloneBaseline = () => ({ version: 3, items: validItems(baseline.items) });
-  const readSaved = () => { try { const saved = JSON.parse(localStorage.getItem(storageKey)) || JSON.parse(localStorage.getItem('wad-2026-itinerary-v2')); return [2, 3].includes(saved?.version) ? { version: 3, items: validItems(saved.items) } : null; } catch { return null; } };
+  const readSaved = () => { try { const saved = JSON.parse(localStorage.getItem(storageKey)); return saved?.version === 3 ? { version: 3, items: validItems(saved.items) } : null; } catch { return null; } };
   const state = { filter: 'itinerary', query: '', itinerary: readSaved() || cloneBaseline() };
   const persist = () => localStorage.setItem(storageKey, JSON.stringify(state.itinerary));
   const tierFor = session => state.itinerary.items[String(session.id)] || null;
@@ -68,7 +68,7 @@
   initializeDialog(els.detail); initializeDialog(els.editor);
 
   function render() {
-    const visible = list.filter(matches);
+    const visible = list.filter(matches).sort((a, b) => a.starts_at.localeCompare(b.starts_at) || a.ends_at.localeCompare(b.ends_at) || String(a.id).localeCompare(String(b.id)));
     const dates = [...new Set(visible.map(sessionDate))];
     const must = Object.values(state.itinerary.items).filter(value => value === 'MUST').length;
     const priority = Object.values(state.itinerary.items).filter(value => value === 'PRIORITY').length;
@@ -87,8 +87,8 @@
 
   function showSession(session, opener) {
     if (!session) return;
-    const tier = tierFor(session); const workshop = session.is_workshop ? '<div class="callout"><b>Workshop registration:</b> Open this session in the official event app to reserve your seat after your ticket is assigned to your email.</div>' : '';
-    els.detailContent.innerHTML = `<button class="dialog-close" type="button" data-close-dialog="detail" data-initial-focus aria-label="Close session details">×</button>${badge(session)}<h2 class="dialog-title" id="detail-title">${escapeHtml(session.title)}</h2><p class="dialog-meta"><span class="session-type">${escapeHtml(type(session))}</span> · ${time(session.starts_at)}–${time(session.ends_at)} · ${dayLabel(sessionDate(session))}</p><div class="fact-grid"><div class="fact"><b>Stage / location</b>${escapeHtml(session.stage || 'Location TBA')}</div><div class="fact"><b>Track</b>${escapeHtml(session.track || 'Not listed')}</div>${session.speakers.length ? `<div class="fact"><b>Speakers</b>${escapeHtml(session.speakers.join(' · '))}</div>` : ''}</div>${workshop}<div class="description">${escapeHtml(session.description || 'No session description provided.').replace(/\n/g, '<br>')}</div><ul class="resource-list">${sessionLinks(session).map(([label, url]) => `<li><a href="${escapeHtml(url)}" target="_blank" rel="noopener">${escapeHtml(label)} ↗</a></li>`).join('')}</ul><div class="dialog-actions"><button class="button ${tier === 'MUST' ? 'primary' : ''}" type="button" data-set-tier="MUST" data-session-id="${session.id}">Mark MUST</button><button class="button ${tier === 'PRIORITY' ? 'primary' : ''}" type="button" data-set-tier="PRIORITY" data-session-id="${session.id}">Mark Priority</button><button class="button ${tier === 'RESERVED' ? 'primary' : ''}" type="button" data-set-tier="RESERVED" data-session-id="${session.id}">Mark Reserved</button>${tier ? `<button class="button danger" type="button" data-set-tier="remove" data-session-id="${session.id}">Remove from itinerary</button>` : ''}</div>${session.app_url ? `<div class="dialog-actions"><a class="button primary" href="${escapeHtml(session.app_url)}" target="_blank" rel="noopener">${session.is_workshop ? 'Reserve in event app' : 'Open in event app'} ↗</a></div>` : ''}`;
+    const tier = tierFor(session); const workshop = session.is_workshop ? (tier === 'RESERVED' ? '<div class="callout"><b>Reserved workshop:</b> You already have a seat for this workshop in the official event app.</div>' : '<div class="callout"><b>Workshop availability:</b> Unreserved workshops are full, so no additional workshops are recommended.</div>') : '';
+    els.detailContent.innerHTML = `<button class="dialog-close" type="button" data-close-dialog="detail" data-initial-focus aria-label="Close session details">×</button>${badge(session)}<h2 class="dialog-title" id="detail-title">${escapeHtml(session.title)}</h2><p class="dialog-meta"><span class="session-type">${escapeHtml(type(session))}</span> · ${time(session.starts_at)}–${time(session.ends_at)} · ${dayLabel(sessionDate(session))}</p><div class="fact-grid"><div class="fact"><b>Stage / location</b>${escapeHtml(session.stage || 'Location TBA')}</div><div class="fact"><b>Track</b>${escapeHtml(session.track || 'Not listed')}</div>${session.speakers.length ? `<div class="fact"><b>Speakers</b>${escapeHtml(session.speakers.join(' · '))}</div>` : ''}</div>${workshop}<div class="description">${escapeHtml(session.description || 'No session description provided.').replace(/\n/g, '<br>')}</div><ul class="resource-list">${sessionLinks(session).map(([label, url]) => `<li><a href="${escapeHtml(url)}" target="_blank" rel="noopener">${escapeHtml(label)} ↗</a></li>`).join('')}</ul><div class="dialog-actions"><button class="button ${tier === 'MUST' ? 'primary' : ''}" type="button" data-set-tier="MUST" data-session-id="${session.id}">Mark MUST</button><button class="button ${tier === 'PRIORITY' ? 'primary' : ''}" type="button" data-set-tier="PRIORITY" data-session-id="${session.id}">Mark Priority</button><button class="button ${tier === 'RESERVED' ? 'primary' : ''}" type="button" data-set-tier="RESERVED" data-session-id="${session.id}">Mark Reserved</button>${tier ? `<button class="button danger" type="button" data-set-tier="remove" data-session-id="${session.id}">Remove from itinerary</button>` : ''}</div>${session.app_url ? `<div class="dialog-actions"><a class="button primary" href="${escapeHtml(session.app_url)}" target="_blank" rel="noopener">${session.is_workshop ? (tier === 'RESERVED' ? 'Open reservation in event app' : 'Open workshop in event app') : 'Open in event app'} ↗</a></div>` : ''}`;
     els.detail.setAttribute('aria-labelledby', 'detail-title'); openModal(els.detail, opener);
   }
 
