@@ -12,7 +12,7 @@
     app: document.querySelector('#app'), count: document.querySelector('#count'), days: document.querySelector('#days'),
     detail: document.querySelector('#detail'), detailContent: document.querySelector('#detailcontent'), editor: document.querySelector('#editor'),
     editorContent: document.querySelector('#editorcontent'), exportButton: document.querySelector('#export'), filters: document.querySelector('#filters'),
-    importFile: document.querySelector('#importfile'), jumpSession: document.querySelector('#jump-session'), manage: document.querySelector('#manage'), ownerAccess: document.querySelector('#owneraccess'), reset: document.querySelector('#reset'),
+    importFile: document.querySelector('#importfile'), jumpSession: document.querySelector('#jump-session'), manage: document.querySelector('#manage'), nowSession: document.querySelector('#now-session'), ownerAccess: document.querySelector('#owneraccess'), reset: document.querySelector('#reset'),
     result: document.querySelector('#resultnote'), schedule: document.querySelector('#schedule'), search: document.querySelector('#search'), storageNote: document.querySelector('#storagenote')
   };
   const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
@@ -71,15 +71,17 @@
 
   function refreshTemporalStatus() {
     const now = Date.now();
-    const status = timeline.itineraryStatus(list, state.itinerary.items, now);
-    const targetId = status.ids[0] || '';
+    const liveStatus = timeline.happeningNowStatus(list, state.itinerary.items, now);
+    const nextStatus = timeline.nextItineraryStatus(list, state.itinerary.items, now);
+    const liveTargetId = liveStatus.ids[0] || '';
+    const nextTargetId = nextStatus.ids[0] || '';
     els.schedule.querySelectorAll('[data-session-id]').forEach(row => {
       const session = byId.get(row.dataset.sessionId);
       const temporalStatus = timeline.sessionStatus(session, now);
       const isNow = temporalStatus === 'now';
-      const isNext = row.dataset.sessionId === targetId && status.state === 'next';
+      const isNext = row.dataset.sessionId === nextTargetId;
       const isPast = temporalStatus === 'past';
-      const isJumpTarget = row.dataset.sessionId === targetId;
+      const isJumpTarget = row.dataset.sessionId === liveTargetId;
       const indicator = row.querySelector('[data-time-indicator]');
       row.classList.toggle('is-now', isNow);
       row.classList.toggle('is-next', isNext);
@@ -98,10 +100,11 @@
       detailIndicator.className = `timing-badge${isPast ? ' past' : isNow ? ' now' : ''}`;
       detailIndicator.textContent = isPast ? 'Past' : isNow ? 'Happening now' : '';
     }
-    els.jumpSession.disabled = !status.ids.length;
-    els.jumpSession.dataset.sessionId = status.ids[0] || '';
-    els.jumpSession.classList.toggle('has-current', status.state === 'now');
-    els.jumpSession.textContent = status.state === 'now' ? 'Current session' : status.state === 'next' ? 'Next session' : 'No upcoming sessions';
+    els.nowSession.hidden = !liveStatus.ids.length;
+    els.nowSession.dataset.sessionId = liveTargetId;
+    els.jumpSession.disabled = !nextStatus.ids.length;
+    els.jumpSession.dataset.sessionId = nextTargetId;
+    els.jumpSession.textContent = nextStatus.ids.length ? 'Next session' : 'No upcoming sessions';
   }
 
   function refreshForClock() {
@@ -114,8 +117,8 @@
     dayStateChanged ? render() : refreshTemporalStatus();
   }
 
-  function jumpToItinerarySession() {
-    const sessionId = els.jumpSession.dataset.sessionId;
+  function jumpToSession(control) {
+    const sessionId = control.dataset.sessionId;
     if (!sessionId) return;
     state.query = '';
     state.filter = 'all';
@@ -212,7 +215,8 @@
   function exportItinerary() { if (!canEdit) return; const url = URL.createObjectURL(new Blob([JSON.stringify(state.itinerary, null, 2)], { type: 'application/json' })); const anchor = Object.assign(document.createElement('a'), { href: url, download: 'wearedevelopers-2026-itinerary.json' }); anchor.click(); setTimeout(() => URL.revokeObjectURL(url), 0); }
 
   els.search.addEventListener('input', event => { state.query = event.target.value.trim().toLowerCase(); render(); });
-  els.jumpSession.addEventListener('click', jumpToItinerarySession);
+  els.nowSession.addEventListener('click', () => jumpToSession(els.nowSession));
+  els.jumpSession.addEventListener('click', () => jumpToSession(els.jumpSession));
   els.days.addEventListener('click', event => {
     const link = event.target.closest('[data-day-link]');
     if (link) setDayExpanded(link.dataset.dayLink, true);
