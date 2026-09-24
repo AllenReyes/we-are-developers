@@ -1,5 +1,5 @@
 window.DEFAULT_ITINERARY={
-  version:3,
+  version:4,
   name:"Allen's recommended itinerary",
   items:{
     "1169":"MUST","1175":"MUST","1229":"MUST","1260":"MUST","1276":"MUST","1300":"MUST","1303":"MUST","1310":"MUST","1351":"MUST",

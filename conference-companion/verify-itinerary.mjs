@@ -65,23 +65,37 @@ expectStatus('2026-09-23T10:29:59-07:00', 'now', ['1069']);
 expectStatus('2026-09-23T10:30:00-07:00', 'next', ['1092']);
 expectStatus('2026-09-23T10:40:00-07:00', 'next', ['1092']);
 expectStatus('2026-09-25T17:20:00-07:00', null, []);
+const rankedSessions = [
+  { id: 'priority-now', starts_at: '2026-09-24T10:00:00-07:00', ends_at: '2026-09-24T11:00:00-07:00' },
+  { id: 'attending-now', starts_at: '2026-09-24T10:10:00-07:00', ends_at: '2026-09-24T11:00:00-07:00' },
+  { id: 'priority-next', starts_at: '2026-09-24T11:30:00-07:00', ends_at: '2026-09-24T12:00:00-07:00' },
+  { id: 'must-next', starts_at: '2026-09-24T11:30:00-07:00', ends_at: '2026-09-24T12:00:00-07:00' },
+  { id: 'attending-later', starts_at: '2026-09-24T12:30:00-07:00', ends_at: '2026-09-24T13:00:00-07:00' }
+];
+const rankedItems = { 'priority-now': 'PRIORITY', 'attending-now': 'ATTENDING', 'priority-next': 'PRIORITY', 'must-next': 'MUST', 'attending-later': 'ATTENDING' };
+const rankedCurrent = timeline.itineraryStatus(rankedSessions, rankedItems, new Date('2026-09-24T10:30:00-07:00'));
+if (JSON.stringify(rankedCurrent) !== JSON.stringify({ state: 'now', ids: ['attending-now', 'priority-now'] })) fail(`current tier ordering is incorrect: ${JSON.stringify(rankedCurrent)}`);
+const rankedNext = timeline.itineraryStatus(rankedSessions, rankedItems, new Date('2026-09-24T11:00:00-07:00'));
+if (JSON.stringify(rankedNext) !== JSON.stringify({ state: 'next', ids: ['must-next'] })) fail(`next tier ordering is incorrect: ${JSON.stringify(rankedNext)}`);
 const boundarySession = { starts_at: '2026-09-23T10:00:00-07:00', ends_at: '2026-09-23T10:30:00-07:00' };
 expectSessionStatus(boundarySession, '2026-09-23T09:59:59-07:00', 'upcoming');
 expectSessionStatus(boundarySession, '2026-09-23T10:00:00-07:00', 'now');
 expectSessionStatus(boundarySession, '2026-09-23T10:29:59-07:00', 'now');
 expectSessionStatus(boundarySession, '2026-09-23T17:30:00Z', 'past');
 
-if (itinerary.version !== 3) fail(`expected itinerary schema version 3, received ${itinerary.version}`);
-if (!appSource.includes("const storageKey = 'wad-2026-itinerary-v3'")) fail('v3 storage key is missing');
-if (appSource.includes("localStorage.getItem('wad-2026-itinerary-v2')")) fail('stale v2 local storage can still override the baseline');
-if (!appSource.includes('[1, 2, 3].includes(value.version)')) fail('backward-compatible itinerary import versions are missing');
+if (itinerary.version !== 4) fail(`expected itinerary schema version 4, received ${itinerary.version}`);
+if (!appSource.includes("const storageKey = 'wad-2026-itinerary-v4'") || !appSource.includes("const legacyStorageKey = 'wad-2026-itinerary-v3'")) fail('v4 storage or v3 migration source is missing');
+if (!appSource.includes('[1, 2, 3, 4].includes(value.version)')) fail('backward-compatible itinerary import versions are missing');
+if (!appSource.includes("['ATTENDING', 'MUST', 'PRIORITY', 'RESERVED']")) fail('ATTENDING itinerary tier is missing');
 if (!indexSource.includes('<!--SITE_AUTH-->')) fail('server auth injection marker is missing');
 if (!indexSource.includes('id="manage" type="button" hidden')) fail('editing control is not hidden by default');
-if (!indexSource.includes('timeline.js?v=2026-09-23-v7') || !indexSource.includes('app.js?v=2026-09-23-v7') || !indexSource.includes('styles.css?v=2026-09-23-v7')) fail('timeline assets or current cache buster are missing');
+if (!indexSource.match(/<nav class="site-switch"[\s\S]*id="jump-session"[\s\S]*<\/nav>/)) fail('current/next session control is not in the header navigation');
+if (!indexSource.includes('timeline.js?v=2026-09-24-v8') || !indexSource.includes('app.js?v=2026-09-24-v8') || !indexSource.includes('styles.css?v=2026-09-24-v8')) fail('timeline assets or current cache buster are missing');
 if (!indexSource.includes('href="/favicon.png"') || !indexSource.includes('href="/apple-touch-icon.png"')) fail('site icon links are missing');
-if (!appSource.includes('window.setInterval(refreshTemporalStatus, 30_000)')) fail('timeline status refresh interval is missing');
-if (!appSource.includes("'Go to current session'") || !appSource.includes("'Go to next session'") || !appSource.includes("'No upcoming sessions'")) fail('itinerary navigation states are missing');
-if (!appSource.includes("state.filter = 'itinerary'") || !appSource.includes("state.query = ''")) fail('itinerary navigation does not reveal hidden targets');
+if (!appSource.includes('window.setInterval(refreshForClock, 30_000)')) fail('timeline and past-day refresh interval is missing');
+if (!appSource.includes("'Current session'") || !appSource.includes("'Next session'") || !appSource.includes("'No upcoming sessions'")) fail('itinerary navigation states are missing');
+if (!appSource.includes("state.filter = 'all'") || !appSource.includes("state.query = ''")) fail('itinerary navigation does not reveal the full schedule');
+if (!appSource.includes('data-toggle-day') || !appSource.includes('expandedPastDays')) fail('past-day collapse controls are missing');
 if (!appSource.includes("matchMedia('(prefers-reduced-motion: reduce)')")) fail('itinerary navigation does not honor reduced motion');
 if (!appSource.includes("const canEdit = auth.canEdit === true")) fail('owner edit gate is missing');
 if (!appSource.includes('canEdit ? readSaved() || cloneBaseline() : cloneBaseline()')) fail('public visitors can load browser-saved overrides');

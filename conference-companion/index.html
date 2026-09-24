@@ -9,7 +9,7 @@
   <link rel="icon" type="image/png" sizes="64x64" href="/favicon.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
   <!--SITE_AUTH-->
-  <link rel="stylesheet" href="styles.css?v=2026-09-23-v7">
+  <link rel="stylesheet" href="styles.css?v=2026-09-24-v8">
 </head>
 <body>
   <a class="skip-link" href="#schedule">Skip to schedule</a>
@@ -31,6 +31,7 @@
           <nav class="site-switch" aria-label="Site sections">
             <a class="event-link active" href="/" aria-current="page">My schedule</a>
             <a class="event-link" href="/recordings">Live &amp; recordings <span aria-hidden="true">→</span></a>
+            <button class="event-link jump-session" id="jump-session" type="button" disabled>No upcoming sessions</button>
           </nav>
         </div>
       </div>
@@ -46,6 +47,7 @@
           <p class="panel-kicker">How to read this</p>
           <h2>Your route</h2>
           <div class="route-key" aria-label="Itinerary status key">
+            <span><i class="key-dot attending"></i><b>ATTENDING</b> Going there</span>
             <span><i class="key-dot must"></i><b>MUST</b> Don't miss</span>
             <span><i class="key-dot priority"></i><b>PRIORITY</b> Strong pick</span>
             <span><i class="key-dot reserved"></i><b>RESERVED</b> Seat confirmed</span>
@@ -62,11 +64,11 @@
               <label for="search">Find a session</label>
               <div class="search-field"><span aria-hidden="true">⌕</span><input class="search" id="search" type="search" placeholder="Search title, speaker, track, or stage…" autocomplete="off"></div>
             </div>
-            <button class="button primary jump-session" id="jump-session" type="button" disabled>No upcoming sessions</button>
           </div>
           <div class="filter-row" id="filters" role="group" aria-label="Session filters">
             <button class="filter" type="button" data-filter="itinerary" aria-pressed="true">My route</button>
             <button class="filter" type="button" data-filter="all" aria-pressed="false">Full schedule</button>
+            <button class="filter" type="button" data-filter="attending" aria-pressed="false">Attending</button>
             <button class="filter" type="button" data-filter="must" aria-pressed="false">MUST</button>
             <button class="filter" type="button" data-filter="priority" aria-pressed="false">Priority</button>
             <button class="filter" type="button" data-filter="reserved" aria-pressed="false">Reserved</button>
@@ -85,9 +87,9 @@
   </div>
   <dialog id="detail" aria-modal="true"><div class="dialog-body" id="detailcontent"></div></dialog>
   <dialog id="editor" aria-modal="true" aria-labelledby="editor-title"><div class="dialog-body"><button class="dialog-close" type="button" data-close-dialog="editor" data-initial-focus aria-label="Close itinerary editor">×</button><h2 class="dialog-title" id="editor-title">Edit itinerary</h2><p class="dialog-meta">Changes stay on this device until you export them.</p><div id="editorcontent"></div><div class="dialog-actions"><button class="button primary" id="export" type="button">Export JSON</button><label class="button" for="importfile">Import JSON</label><input class="sr-only" id="importfile" type="file" accept="application/json"><button class="button danger" id="reset" type="button">Reset to baseline</button></div></div></dialog>
-  <script src="sessions.js?v=2026-09-23-v7"></script>
-  <script src="itinerary.js?v=2026-09-23-v7"></script>
-  <script src="timeline.js?v=2026-09-23-v7"></script>
-  <script src="app.js?v=2026-09-23-v7"></script>
+  <script src="sessions.js?v=2026-09-24-v8"></script>
+  <script src="itinerary.js?v=2026-09-24-v8"></script>
+  <script src="timeline.js?v=2026-09-24-v8"></script>
+  <script src="app.js?v=2026-09-24-v8"></script>
 </body>
 </html>
