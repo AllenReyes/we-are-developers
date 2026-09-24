@@ -77,9 +77,12 @@ if (appSource.includes("localStorage.getItem('wad-2026-itinerary-v2')")) fail('s
 if (!appSource.includes('[1, 2, 3].includes(value.version)')) fail('backward-compatible itinerary import versions are missing');
 if (!indexSource.includes('<!--SITE_AUTH-->')) fail('server auth injection marker is missing');
 if (!indexSource.includes('id="manage" type="button" hidden')) fail('editing control is not hidden by default');
-if (!indexSource.includes('timeline.js?v=2026-09-23-v6')) fail('timeline script or current cache buster is missing');
+if (!indexSource.includes('timeline.js?v=2026-09-23-v7') || !indexSource.includes('app.js?v=2026-09-23-v7') || !indexSource.includes('styles.css?v=2026-09-23-v7')) fail('timeline assets or current cache buster are missing');
 if (!indexSource.includes('href="/favicon.png"') || !indexSource.includes('href="/apple-touch-icon.png"')) fail('site icon links are missing');
 if (!appSource.includes('window.setInterval(refreshTemporalStatus, 30_000)')) fail('timeline status refresh interval is missing');
+if (!appSource.includes("'Go to current session'") || !appSource.includes("'Go to next session'") || !appSource.includes("'No upcoming sessions'")) fail('itinerary navigation states are missing');
+if (!appSource.includes("state.filter = 'itinerary'") || !appSource.includes("state.query = ''")) fail('itinerary navigation does not reveal hidden targets');
+if (!appSource.includes("matchMedia('(prefers-reduced-motion: reduce)')")) fail('itinerary navigation does not honor reduced motion');
 if (!appSource.includes("const canEdit = auth.canEdit === true")) fail('owner edit gate is missing');
 if (!appSource.includes('canEdit ? readSaved() || cloneBaseline() : cloneBaseline()')) fail('public visitors can load browser-saved overrides');
 if (!buildSource.includes("oai-authenticated-user-email") || !buildSource.includes('env?.OWNER_EMAIL')) fail('server-side owner identity check is missing');

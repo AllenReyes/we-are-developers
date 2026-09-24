@@ -10,7 +10,7 @@
     app: document.querySelector('#app'), count: document.querySelector('#count'), days: document.querySelector('#days'),
     detail: document.querySelector('#detail'), detailContent: document.querySelector('#detailcontent'), editor: document.querySelector('#editor'),
     editorContent: document.querySelector('#editorcontent'), exportButton: document.querySelector('#export'), filters: document.querySelector('#filters'),
-    importFile: document.querySelector('#importfile'), manage: document.querySelector('#manage'), ownerAccess: document.querySelector('#owneraccess'), reset: document.querySelector('#reset'),
+    importFile: document.querySelector('#importfile'), jumpSession: document.querySelector('#jump-session'), manage: document.querySelector('#manage'), ownerAccess: document.querySelector('#owneraccess'), reset: document.querySelector('#reset'),
     result: document.querySelector('#resultnote'), schedule: document.querySelector('#schedule'), search: document.querySelector('#search'), storageNote: document.querySelector('#storagenote')
   };
   const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
@@ -45,18 +45,49 @@
   };
 
   function refreshTemporalStatus() {
-    const status = timeline.itineraryStatus(list, state.itinerary.items);
+    const now = Date.now();
+    const status = timeline.itineraryStatus(list, state.itinerary.items, now);
     const activeIds = new Set(status.ids);
     els.schedule.querySelectorAll('[data-session-id]').forEach(row => {
+      const session = byId.get(row.dataset.sessionId);
       const active = activeIds.has(row.dataset.sessionId);
       const isNow = active && status.state === 'now';
       const isNext = active && status.state === 'next';
+      const isPast = timeline.sessionStatus(session, now) === 'past';
       const indicator = row.querySelector('[data-time-indicator]');
       row.classList.toggle('is-now', isNow);
       row.classList.toggle('is-next', isNext);
-      indicator.hidden = !active;
-      indicator.className = `timing-badge${isNow ? ' now' : isNext ? ' next' : ''}`;
-      indicator.textContent = isNow ? 'Happening now' : isNext ? 'Up next' : '';
+      indicator.hidden = !isNow && !isNext && !isPast;
+      indicator.className = `timing-badge${isNow ? ' now' : isNext ? ' next' : isPast ? ' past' : ''}`;
+      indicator.textContent = isNow ? 'Happening now' : isNext ? 'Up next' : isPast ? 'Past' : '';
+    });
+    const detailIndicator = els.detailContent.querySelector('[data-detail-time-indicator]');
+    if (detailIndicator) {
+      const session = byId.get(detailIndicator.dataset.detailSessionId);
+      const isPast = timeline.sessionStatus(session, now) === 'past';
+      detailIndicator.hidden = !isPast;
+      detailIndicator.className = `timing-badge${isPast ? ' past' : ''}`;
+      detailIndicator.textContent = isPast ? 'Past' : '';
+    }
+    els.jumpSession.disabled = !status.ids.length;
+    els.jumpSession.dataset.sessionId = status.ids[0] || '';
+    els.jumpSession.textContent = status.state === 'now' ? 'Go to current session' : status.state === 'next' ? 'Go to next session' : 'No upcoming sessions';
+  }
+
+  function jumpToItinerarySession() {
+    const sessionId = els.jumpSession.dataset.sessionId;
+    if (!sessionId) return;
+    state.query = '';
+    state.filter = 'itinerary';
+    els.search.value = '';
+    [...els.filters.querySelectorAll('[data-filter]')].forEach(item => item.setAttribute('aria-pressed', String(item.dataset.filter === 'itinerary')));
+    render();
+    requestAnimationFrame(() => {
+      const row = [...els.schedule.querySelectorAll('[data-session-id]')].find(item => item.dataset.sessionId === sessionId);
+      if (!row) return;
+      row.focus({ preventScroll: true });
+      const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      row.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'center' });
     });
   }
 
@@ -108,7 +139,7 @@
       return `<section class="schedule-day" id="${date}" aria-labelledby="heading-${date}"><div class="day-heading"><div><p>${parts.date} · Your route</p><h2 id="heading-${date}">${parts.weekday}</h2></div><span>${sessions.length} sessions</span></div>${sessions.map(session => {
         const group = session.starts_at !== last ? `<div class="time-group">${time(session.starts_at)} start</div>` : ''; last = session.starts_at;
         const tier = tierFor(session);
-        return `${group}<article class="session-row ${tier ? tier.toLowerCase() : ''}" data-session-id="${session.id}"><div class="session-time"><b>${time(session.starts_at)}</b><span>${time(session.ends_at)}</span></div><div class="session-main"><div class="session-meta"><span class="timing-badge" data-time-indicator hidden></span>${badge(session)} <span class="session-type">${escapeHtml(type(session))}</span><span class="session-location">${escapeHtml(session.stage || 'Location TBA')}</span>${session.track ? `<span>${escapeHtml(session.track)}</span>` : ''}</div><h3 class="session-title">${escapeHtml(session.title)}</h3>${session.speakers.length ? `<p class="session-speakers">${escapeHtml(session.speakers.join(' · '))}</p>` : ''}</div><button class="row-action" data-open-session="${session.id}" aria-label="Open details for ${escapeHtml(session.title)}"><span>View</span><i aria-hidden="true">→</i></button></article>`;
+        return `${group}<article class="session-row ${tier ? tier.toLowerCase() : ''}" data-session-id="${session.id}" tabindex="-1"><div class="session-time"><b>${time(session.starts_at)}</b><span>${time(session.ends_at)}</span></div><div class="session-main"><div class="session-meta"><span class="timing-badge" data-time-indicator hidden></span>${badge(session)} <span class="session-type">${escapeHtml(type(session))}</span><span class="session-location">${escapeHtml(session.stage || 'Location TBA')}</span>${session.track ? `<span>${escapeHtml(session.track)}</span>` : ''}</div><h3 class="session-title">${escapeHtml(session.title)}</h3>${session.speakers.length ? `<p class="session-speakers">${escapeHtml(session.speakers.join(' · '))}</p>` : ''}</div><button class="row-action" data-open-session="${session.id}" aria-label="Open details for ${escapeHtml(session.title)}"><span>View</span><i aria-hidden="true">→</i></button></article>`;
       }).join('')}</section>`;
     }).join('') || '<div class="empty">No sessions match those filters. Clear the search or choose another filter.</div>';
     refreshTemporalStatus();
@@ -118,7 +149,8 @@
     if (!session) return;
     const tier = tierFor(session); const workshop = session.is_workshop ? (tier === 'RESERVED' ? '<div class="callout"><b>Reserved workshop:</b> You already have a seat for this workshop in the official event app.</div>' : '<div class="callout"><b>Workshop availability:</b> Unreserved workshops are full, so no additional workshops are recommended.</div>') : '';
     const editActions = canEdit ? `<div class="dialog-actions"><button class="button ${tier === 'MUST' ? 'primary' : ''}" type="button" data-set-tier="MUST" data-session-id="${session.id}">Mark MUST</button><button class="button ${tier === 'PRIORITY' ? 'primary' : ''}" type="button" data-set-tier="PRIORITY" data-session-id="${session.id}">Mark Priority</button><button class="button ${tier === 'RESERVED' ? 'primary' : ''}" type="button" data-set-tier="RESERVED" data-session-id="${session.id}">Mark Reserved</button>${tier ? `<button class="button danger" type="button" data-set-tier="remove" data-session-id="${session.id}">Remove from itinerary</button>` : ''}</div>` : '';
-    els.detailContent.innerHTML = `<button class="dialog-close" type="button" data-close-dialog="detail" data-initial-focus aria-label="Close session details">×</button>${badge(session)}<h2 class="dialog-title" id="detail-title">${escapeHtml(session.title)}</h2><p class="dialog-meta"><span class="session-type">${escapeHtml(type(session))}</span> · ${time(session.starts_at)}–${time(session.ends_at)} · ${dayLabel(sessionDate(session))}</p><div class="fact-grid"><div class="fact"><b>Stage / location</b>${escapeHtml(session.stage || 'Location TBA')}</div><div class="fact"><b>Track</b>${escapeHtml(session.track || 'Not listed')}</div>${session.speakers.length ? `<div class="fact"><b>Speakers</b>${escapeHtml(session.speakers.join(' · '))}</div>` : ''}</div>${workshop}<div class="description">${escapeHtml(session.description || 'No session description provided.').replace(/\n/g, '<br>')}</div><ul class="resource-list">${sessionLinks(session).map(([label, url]) => `<li><a href="${escapeHtml(url)}" target="_blank" rel="noopener">${escapeHtml(label)} ↗</a></li>`).join('')}</ul>${editActions}${session.app_url ? `<div class="dialog-actions"><a class="button primary" href="${escapeHtml(session.app_url)}" target="_blank" rel="noopener">${session.is_workshop ? (tier === 'RESERVED' ? 'Open reservation in event app' : 'Open workshop in event app') : 'Open in event app'} ↗</a></div>` : ''}`;
+    els.detailContent.innerHTML = `<button class="dialog-close" type="button" data-close-dialog="detail" data-initial-focus aria-label="Close session details">×</button><span class="timing-badge" data-detail-time-indicator data-detail-session-id="${session.id}" hidden></span>${badge(session)}<h2 class="dialog-title" id="detail-title">${escapeHtml(session.title)}</h2><p class="dialog-meta"><span class="session-type">${escapeHtml(type(session))}</span> · ${time(session.starts_at)}–${time(session.ends_at)} · ${dayLabel(sessionDate(session))}</p><div class="fact-grid"><div class="fact"><b>Stage / location</b>${escapeHtml(session.stage || 'Location TBA')}</div><div class="fact"><b>Track</b>${escapeHtml(session.track || 'Not listed')}</div>${session.speakers.length ? `<div class="fact"><b>Speakers</b>${escapeHtml(session.speakers.join(' · '))}</div>` : ''}</div>${workshop}<div class="description">${escapeHtml(session.description || 'No session description provided.').replace(/\n/g, '<br>')}</div><ul class="resource-list">${sessionLinks(session).map(([label, url]) => `<li><a href="${escapeHtml(url)}" target="_blank" rel="noopener">${escapeHtml(label)} ↗</a></li>`).join('')}</ul>${editActions}${session.app_url ? `<div class="dialog-actions"><a class="button primary" href="${escapeHtml(session.app_url)}" target="_blank" rel="noopener">${session.is_workshop ? (tier === 'RESERVED' ? 'Open reservation in event app' : 'Open workshop in event app') : 'Open in event app'} ↗</a></div>` : ''}`;
+    refreshTemporalStatus();
     els.detail.setAttribute('aria-labelledby', 'detail-title'); openModal(els.detail, opener);
   }
 
@@ -133,6 +165,7 @@
   function exportItinerary() { if (!canEdit) return; const url = URL.createObjectURL(new Blob([JSON.stringify(state.itinerary, null, 2)], { type: 'application/json' })); const anchor = Object.assign(document.createElement('a'), { href: url, download: 'wearedevelopers-2026-itinerary.json' }); anchor.click(); setTimeout(() => URL.revokeObjectURL(url), 0); }
 
   els.search.addEventListener('input', event => { state.query = event.target.value.trim().toLowerCase(); render(); });
+  els.jumpSession.addEventListener('click', jumpToItinerarySession);
   els.filters.addEventListener('click', event => { const button = event.target.closest('[data-filter]'); if (!button) return; state.filter = button.dataset.filter; [...els.filters.querySelectorAll('[data-filter]')].forEach(item => item.setAttribute('aria-pressed', String(item === button))); render(); });
   els.manage.addEventListener('click', event => { if (!canEdit) return; renderEditor(); openModal(els.editor, event.currentTarget); });
   els.exportButton.addEventListener('click', exportItinerary);
