@@ -1,6 +1,13 @@
 (() => {
   const timestamp = value => new Date(value).getTime();
 
+  function sessionStatus(session, now = Date.now()) {
+    const currentTime = now instanceof Date ? now.getTime() : Number(now);
+    if (currentTime >= timestamp(session.ends_at)) return 'past';
+    if (currentTime >= timestamp(session.starts_at)) return 'now';
+    return 'upcoming';
+  }
+
   function itineraryStatus(sessions, items, now = Date.now()) {
     const currentTime = now instanceof Date ? now.getTime() : Number(now);
     const selected = sessions
@@ -16,5 +23,5 @@
     return next ? { state: 'next', ids: [String(next.id)] } : { state: null, ids: [] };
   }
 
-  window.CONFERENCE_TIMELINE = Object.freeze({ itineraryStatus });
+  window.CONFERENCE_TIMELINE = Object.freeze({ itineraryStatus, sessionStatus });
 })();

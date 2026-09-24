@@ -54,6 +54,10 @@ const expectStatus = (time, expectedState, expectedIds) => {
     fail(`timeline status at ${time}: ${JSON.stringify(actual)} !== ${JSON.stringify({ state: expectedState, ids: expectedIds })}`);
   }
 };
+const expectSessionStatus = (session, time, expectedState) => {
+  const actual = timeline.sessionStatus(session, new Date(time));
+  if (actual !== expectedState) fail(`session status at ${time}: ${actual} !== ${expectedState}`);
+};
 
 expectStatus('2026-09-23T09:59:59-07:00', 'next', ['1069']);
 expectStatus('2026-09-23T10:00:00-07:00', 'now', ['1069']);
@@ -61,6 +65,11 @@ expectStatus('2026-09-23T10:29:59-07:00', 'now', ['1069']);
 expectStatus('2026-09-23T10:30:00-07:00', 'next', ['1092']);
 expectStatus('2026-09-23T10:40:00-07:00', 'next', ['1092']);
 expectStatus('2026-09-25T17:20:00-07:00', null, []);
+const boundarySession = { starts_at: '2026-09-23T10:00:00-07:00', ends_at: '2026-09-23T10:30:00-07:00' };
+expectSessionStatus(boundarySession, '2026-09-23T09:59:59-07:00', 'upcoming');
+expectSessionStatus(boundarySession, '2026-09-23T10:00:00-07:00', 'now');
+expectSessionStatus(boundarySession, '2026-09-23T10:29:59-07:00', 'now');
+expectSessionStatus(boundarySession, '2026-09-23T17:30:00Z', 'past');
 
 if (itinerary.version !== 3) fail(`expected itinerary schema version 3, received ${itinerary.version}`);
 if (!appSource.includes("const storageKey = 'wad-2026-itinerary-v3'")) fail('v3 storage key is missing');
