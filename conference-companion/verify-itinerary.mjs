@@ -97,11 +97,11 @@ if (!appSource.includes('[1, 2, 3, 4].includes(value.version)')) fail('backward-
 if (!appSource.includes("['ATTENDING', 'MUST', 'PRIORITY', 'RESERVED']")) fail('ATTENDING itinerary tier is missing');
 if (!indexSource.includes('<!--SITE_AUTH-->')) fail('server auth injection marker is missing');
 if (!indexSource.includes('id="manage" type="button" hidden')) fail('editing control is not hidden by default');
-if (!indexSource.match(/<nav class="site-switch"[\s\S]*id="now-session"[\s\S]*id="jump-session"[\s\S]*<\/nav>/)) fail('live and next session controls are not in the header navigation');
-if (!indexSource.includes('timeline.js?v=2026-09-24-v9') || !indexSource.includes('app.js?v=2026-09-24-v9') || !indexSource.includes('styles.css?v=2026-09-24-v9')) fail('timeline assets or current cache buster are missing');
+if (!indexSource.match(/<div class="toolbar-main">[\s\S]*class="timeline-actions"[\s\S]*id="now-session"[\s\S]*id="jump-session"[\s\S]*<\/div>/)) fail('live and next session controls are not in the sticky toolbar');
+if (!indexSource.includes('timeline.js?v=2026-09-25-v10') || !indexSource.includes('app.js?v=2026-09-25-v10') || !indexSource.includes('styles.css?v=2026-09-25-v10')) fail('timeline assets or current cache buster are missing');
 if (!indexSource.includes('href="/favicon.png"') || !indexSource.includes('href="/apple-touch-icon.png"')) fail('site icon links are missing');
 if (!appSource.includes('window.setInterval(refreshForClock, 30_000)')) fail('timeline and past-day refresh interval is missing');
-if (!appSource.includes("'Next session'") || !appSource.includes("'No upcoming sessions'") || !appSource.includes('liveStatus.ids.length')) fail('live and next navigation states are missing');
+if (!appSource.includes('"What\'s next"') || !appSource.includes("'Nothing upcoming'") || !appSource.includes('liveStatus.ids.length')) fail('live and next navigation states are missing');
 if (!appSource.includes("state.filter = 'all'") || !appSource.includes("state.query = ''")) fail('itinerary navigation does not reveal the full schedule');
 if (!appSource.includes('data-toggle-day') || !appSource.includes('expandedPastDays')) fail('past-day collapse controls are missing');
 if (!appSource.includes("matchMedia('(prefers-reduced-motion: reduce)')")) fail('itinerary navigation does not honor reduced motion');

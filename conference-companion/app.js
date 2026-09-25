@@ -104,7 +104,7 @@
     els.nowSession.dataset.sessionId = liveTargetId;
     els.jumpSession.disabled = !nextStatus.ids.length;
     els.jumpSession.dataset.sessionId = nextTargetId;
-    els.jumpSession.textContent = nextStatus.ids.length ? 'Next session' : 'No upcoming sessions';
+    els.jumpSession.textContent = nextStatus.ids.length ? "What's next" : 'Nothing upcoming';
   }
 
   function refreshForClock() {
