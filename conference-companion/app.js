@@ -138,16 +138,23 @@
   const modalState = new WeakMap();
   const focusable = dialog => [...dialog.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])')].filter(element => !element.hidden);
   function lockPage() {
+    const scrollX = window.scrollX;
     const scrollY = window.scrollY;
+    document.body.dataset.scrollX = String(scrollX);
     document.body.dataset.scrollY = String(scrollY);
     document.body.style.paddingRight = `${Math.max(0, window.innerWidth - document.documentElement.clientWidth)}px`;
     document.body.style.position = 'fixed'; document.body.style.top = `-${scrollY}px`; document.body.style.width = '100%';
     document.body.classList.add('modal-open'); els.app.inert = true;
   }
   function unlockPage() {
+    const scrollX = Number(document.body.dataset.scrollX || 0);
     const scrollY = Number(document.body.dataset.scrollY || 0);
     document.body.classList.remove('modal-open'); document.body.style.removeProperty('padding-right'); document.body.style.removeProperty('position'); document.body.style.removeProperty('top'); document.body.style.removeProperty('width');
-    delete document.body.dataset.scrollY; els.app.inert = false; window.scrollTo(0, scrollY);
+    delete document.body.dataset.scrollX; delete document.body.dataset.scrollY; els.app.inert = false;
+    const scrollBehavior = document.documentElement.style.scrollBehavior;
+    document.documentElement.style.scrollBehavior = 'auto';
+    window.scrollTo(scrollX, scrollY);
+    document.documentElement.style.scrollBehavior = scrollBehavior;
   }
   function openModal(dialog, opener) {
     modalState.set(dialog, opener || document.activeElement);
@@ -164,7 +171,7 @@
       else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
     });
     dialog.addEventListener('click', event => { if (event.target === dialog) closeModal(dialog); });
-    dialog.addEventListener('close', () => { unlockPage(); const opener = modalState.get(dialog); if (opener?.isConnected) opener.focus(); });
+    dialog.addEventListener('close', () => { unlockPage(); const opener = modalState.get(dialog); if (opener?.isConnected) opener.focus({ preventScroll: true }); });
   }
   initializeDialog(els.detail); initializeDialog(els.editor);
 
